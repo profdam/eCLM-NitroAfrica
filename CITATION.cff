@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the archived release."
+title: "NitroAfrica modifications to eCLM"
+version: "0.1.0-peer-review"
+license: "BSD-3-Clause"
+type: software
+abstract: >-
+  Modified version of eCLM developed for the NitroAfrica project.
+  The code separates reduced and oxidised atmospheric nitrogen
+  deposition, routes NHx and NOy to the corresponding soil mineral
+  nitrogen pools, and adds process-based diagnostics for soil NO,
+  N2O and NH3 emissions, including rainfall-pulse and canopy-reduction
+  treatments.
+authors:
+  - given-names: "Adeola Michael"
+    family-names: "Dahunsi"
+    affiliation: "Laboratoire d’Aérologie, Université de Toulouse"
+  - given-names: "Claire"
+    family-names: "Delon"
+    affiliation: "Laboratoire d’Aérologie, Université de Toulouse"
+  - given-names: "Fabien"
+    family-names: "Solmon"
+    affiliation: "Laboratoire d’Aérologie, Université de Toulouse"
+keywords:
+  - eCLM
+  - CLM5
+  - NitroAfrica
+  - nitrogen deposition
+  - ammonia volatilisation
+  - nitric oxide
+  - nitrous oxide
+  - African savanna
+  - land-surface modelling
