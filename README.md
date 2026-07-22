@@ -1,3 +1,11 @@
+# NitroAfrica modifications to eCLM
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21490378.svg)](https://doi.org/10.5281/zenodo.21490378)
+
+This repository contains the modified eCLM source code developed for the
+NitroAfrica study of atmospheric nitrogen deposition composition and soil
+nitrogen emissions in African savanna ecosystems.
+
 # eCLM
 
 [![CI](https://github.com/HPSCTerrSys/eCLM/actions/workflows/CI.yml/badge.svg)](https://github.com/HPSCTerrSys/eCLM/actions/workflows/CI.yml)

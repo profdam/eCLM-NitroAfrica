@@ -387,8 +387,19 @@ Users of this modified version should cite:
 4. the archived software release and DOI, once available;
 5. the scientific publications underlying the implemented NO, N2O, NH3, rainfall-pulse and canopy-reduction formulations.
 
-The final manuscript citation and repository DOI will be inserted here after publication.
+## Software archive
 
+The peer-review version of the modified source code is permanently archived
+on Zenodo:
+
+Dahunsi et. al. (2026b).
+*NitroAfrica modifications to eCLM*.
+Zenodo. https://doi.org/10.5281/zenodo.21490378
+
+DOI: `10.5281/zenodo.21490378`
+
+GitHub repository:
+`https://github.com/profdam/eCLM-NitroAfrica`
 
 ## Licence
 

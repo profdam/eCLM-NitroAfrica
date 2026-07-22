@@ -1,7 +1,9 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite the archived release."
 title: "NitroAfrica modifications to eCLM"
-version: "0.1.0-peer-review"
+version: "0.1.3-peer-review"
+doi: "10.5281/zenodo.21490378"
+repository-code: "https://github.com/profdam/eCLM-NitroAfrica"
 license: "BSD-3-Clause"
 type: software
 abstract: >-
