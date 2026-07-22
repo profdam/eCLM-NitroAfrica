@@ -74,6 +74,7 @@ module CNVegetationFacade
   use EnergyFluxType                  , only : energyflux_type
   use SoilHydrologyType               , only : soilhydrology_type
   use FrictionVelocityMod             , only : frictionvel_type
+  use DryDepVelocity                  , only : drydepvel_type !mvm for soil NOx canopy reduction
   use SoilBiogeochemStateType         , only : soilBiogeochem_state_type
   use SoilBiogeochemCarbonStateType   , only : soilbiogeochem_carbonstate_type
   use SoilBiogeochemCarbonFluxType    , only : soilBiogeochem_carbonflux_type
@@ -806,7 +807,9 @@ contains
        atm2lnd_inst, waterstate_inst, waterflux_inst,                           &
        canopystate_inst, soilstate_inst, temperature_inst, crop_inst, ch4_inst, &
        photosyns_inst, soilhydrology_inst, energyflux_inst,          &
-       nutrient_competition_method, fireemis_inst)
+       nutrient_competition_method, fireemis_inst,                    &
+       drydepvel_inst, & !mvm for soil NOx fluxes canopy reduction
+       frictionvel_inst  )  !mvm: added by fkm for nh3 volatility
     !
     ! !DESCRIPTION:
     ! Do the main science for CN vegetation that needs to be done before hydrology-drainage
@@ -848,6 +851,8 @@ contains
     type(energyflux_type)                   , intent(in)    :: energyflux_inst
     class(nutrient_competition_method_type) , intent(inout) :: nutrient_competition_method
     type(fireemis_type)                     , intent(inout) :: fireemis_inst
+    type(drydepvel_type)                   , intent(inout) :: drydepvel_inst  !mvm for soil NOx canopy reduction
+    type(frictionvel_type)                 , intent(in)    :: frictionvel_inst !mvm: added by fkm for nh3 volatility
     !
     ! !LOCAL VARIABLES:
 
@@ -875,7 +880,9 @@ contains
          atm2lnd_inst, waterstate_inst, waterflux_inst,                           &
          canopystate_inst, soilstate_inst, temperature_inst, crop_inst, ch4_inst, &
          this%dgvs_inst, photosyns_inst, soilhydrology_inst, energyflux_inst,          &
-         nutrient_competition_method, this%cnfire_method, this%dribble_crophrv_xsmrpool_2atm)
+         nutrient_competition_method, this%cnfire_method, this%dribble_crophrv_xsmrpool_2atm, &
+          drydepvel_inst, & !mvm for soil NOx canopy reduction
+          frictionvel_inst        ) !mvm: added by fkm for nh3 vol
 
     ! fire carbon emissions 
     call CNFireEmisUpdate(bounds, num_soilp, filter_soilp, &

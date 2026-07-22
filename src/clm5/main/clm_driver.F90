@@ -839,7 +839,9 @@ contains
                atm2lnd_inst, waterstate_inst, waterflux_inst,                           &
                canopystate_inst, soilstate_inst, temperature_inst, crop_inst, ch4_inst, &
                photosyns_inst, soilhydrology_inst, energyflux_inst,          &
-               nutrient_competition_method, fireemis_inst)
+               nutrient_competition_method, fireemis_inst,                              &
+               drydepvel_inst,            & !mvm for canopy reduction in soil NOx
+               frictionvel_inst)          ! mvm: added by fkm for canopy reduction in soil NH3
 
           call t_stopf('ecosysdyn')
 

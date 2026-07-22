@@ -256,13 +256,33 @@ contains
        if (use_c13) then
           atm2lnd_inst%forc_pc13o2_grc(g) = co2_ppmv_val * c13ratio * 1.e-6_r8 * forc_pbot
        end if
-
-       if (ndep_from_cpl) then
-          ! The coupler is sending ndep in units if kgN/m2/s - and clm uses units of gN/m2/sec - so the
+!Adeola Commented: begin
+       !if (ndep_from_cpl) then
+       !   ! The coupler is sending ndep in units if kgN/m2/s - and clm uses units of gN/m2/sec - so the
           ! following conversion needs to happen
-          atm2lnd_inst%forc_ndep_grc(g) = (x2l(index_x2l_Faxa_nhx, i) + x2l(index_x2l_faxa_noy, i))*1000._r8
-       end if
+       !   atm2lnd_inst%forc_ndep_grc(g) = (x2l(index_x2l_Faxa_nhx, i) + x2l(index_x2l_faxa_noy, i))*1000._r8
+       !end if
+!Adeola commented: end
 
+!Adeola Added: begin
+if (ndep_from_cpl) then
+   ! The coupler sends NHx and NOy in kgN/m2/s.
+   ! CLM stores forcing in gN/m2/s, hence the factor 1000.
+   atm2lnd_inst%forc_nhxdep_grc(g) = x2l(index_x2l_Faxa_nhx, i) * 1000._r8
+   atm2lnd_inst%forc_noydep_grc(g) = x2l(index_x2l_faxa_noy, i) * 1000._r8
+   atm2lnd_inst%forc_ndep_grc(g)   = atm2lnd_inst%forc_nhxdep_grc(g) + &
+                                     atm2lnd_inst%forc_noydep_grc(g)
+
+   ! if (g == bounds%begg) then
+   !   write(*,*) 'NDEPDBG_CPL', 'g=', g, 'i=', i, &
+   !              'x2l_nhx=', x2l(index_x2l_Faxa_nhx, i), &
+   !              'x2l_noy=', x2l(index_x2l_faxa_noy, i), &
+   !              'forc_nhx=', atm2lnd_inst%forc_nhxdep_grc(g), &
+   !              'forc_noy=', atm2lnd_inst%forc_noydep_grc(g), &
+   !              'forc_ndep=', atm2lnd_inst%forc_ndep_grc(g)
+   ! end if
+end if
+!Adeola added: end
     end do
 
     call glc2lnd_inst%set_glc2lnd_fields( &

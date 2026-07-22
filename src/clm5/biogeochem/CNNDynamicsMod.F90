@@ -25,6 +25,8 @@ module CNNDynamicsMod
   use ColumnType                      , only : col                
   use PatchType                       , only : patch                
   use perf_mod                        , only : t_startf, t_stopf
+  ! use ColumnType   		      , only : col  !Adeola added for debugging
+  ! use GridcellType 		      , only : grc   !Adeola added for debugging
   !
   implicit none
   private
@@ -136,14 +138,46 @@ contains
     !-----------------------------------------------------------------------
     
     associate(                                                                & 
-         forc_ndep     =>  atm2lnd_inst%forc_ndep_grc ,                       & ! Input:  [real(r8) (:)]  nitrogen deposition rate (gN/m2/s)
-         ndep_to_sminn =>  soilbiogeochem_nitrogenflux_inst%ndep_to_sminn_col & ! Output: [real(r8) (:)]  atmospheric N deposition to soil mineral N (gN/m2/s)
+         !forc_ndep     =>  atm2lnd_inst%forc_ndep_grc ,                       & ! Input:  [real(r8) (:)]  nitrogen deposition rate (gN/m2/s)
+         !ndep_to_sminn =>  soilbiogeochem_nitrogenflux_inst%ndep_to_sminn_col & ! Output: [real(r8) (:)]  atmospheric N deposition to soil mineral N (gN/m2/s)
+!Adeola added: begin
+forc_nhxdep       => atm2lnd_inst%forc_nhxdep_grc,                       &
+forc_noydep       => atm2lnd_inst%forc_noydep_grc,                       &
+forc_ndep         => atm2lnd_inst%forc_ndep_grc,                         &
+nhxdep_to_sminnh4 => soilbiogeochem_nitrogenflux_inst%nhxdep_to_sminnh4_col, &
+noydep_to_sminno3 => soilbiogeochem_nitrogenflux_inst%noydep_to_sminno3_col, &
+ndep_to_sminn     => soilbiogeochem_nitrogenflux_inst%ndep_to_sminn_col      &
          )
+!Adeola added:end
       
       ! Loop through columns
       do c = bounds%begc, bounds%endc
          g = col%gridcell(c)
-         ndep_to_sminn(c) = forc_ndep(g)
+         !ndep_to_sminn(c) = forc_ndep(g) !commented by Adeola
+
+!Adeola added: begin
+nhxdep_to_sminnh4(c) = forc_nhxdep(g)
+noydep_to_sminno3(c) = forc_noydep(g)
+ndep_to_sminn(c)     = nhxdep_to_sminnh4(c) + noydep_to_sminno3(c)
+!Adeol added: end
+
+! Adeola inserted to test: begin
+!if (c == bounds%begc) then
+!   write(*,'(A,1X,A,I8,1X,A,I8,1X,A,F12.6,1X,A,F12.6,1X,A,ES24.16,1X,A,ES24.16,1X,A,ES24.16)') &
+!      'NDEPDBG_DEP', 'c=', c, 'g=', g, &
+!      'lat=', grc%latdeg(col%gridcell(c)), &
+!      'lon=', grc%londeg(col%gridcell(c)), &
+!      'forc_nhx=', forc_nhxdep(g), &
+!      'forc_noy=', forc_noydep(g), &
+!      'forc_ndep=', forc_ndep(g)
+!
+!   write(*,'(A,1X,A,ES24.16,1X,A,ES24.16,1X,A,ES24.16)') &
+!      'NDEPDBG_FLUX', &
+!      'nhxdep_to_sminnh4=', nhxdep_to_sminnh4(c), &
+!      'noydep_to_sminno3=', noydep_to_sminno3(c), &
+!      'ndep_to_sminn=', ndep_to_sminn(c)
+! end if
+! Adeola inserted to test: end
 
       end do
 

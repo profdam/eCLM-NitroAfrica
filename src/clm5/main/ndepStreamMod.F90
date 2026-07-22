@@ -73,7 +73,8 @@ contains
    character(len=CL)  :: ndepmapalgo = 'bilinear'
    character(len=CL)  :: ndep_tintalgo = 'linear'
    character(len=CS)  :: ndep_taxmode = 'extend'
-   character(len=CL)  :: ndep_varlist = 'NDEP_year'
+   !character(len=CL)  :: ndep_varlist = 'NDEP_month' !Commented by Adeola
+   character(len=CL) :: ndep_varlist = 'NDEP_NHx_month:NDEP_NOy_month' !Added by Adeola
    character(*), parameter :: shr_strdata_unset = 'NOT_SET'
    character(*), parameter :: subName = "('ndepdyn_init')"
    character(*), parameter :: F00 = "('(ndepdyn_init) ',4a)"
@@ -174,50 +175,90 @@ contains
   
  subroutine check_units( stream_fldFileName_ndep, ndep_varList )
    !-------------------------------------------------------------------
-   ! Check that units are correct on the file and if need any conversion
-   use ncdio_pio     , only : ncd_pio_openfile, ncd_inqvid, ncd_getatt, ncd_pio_closefile, ncd_nowrite
+   ! Check that the nitrogen deposition fields have valid units and
+   ! determine whether conversion from annual units to per-second units
+   ! is required.
+   !
+   ! Adeola modification:
+   ! This version checks two deposition fields separately:
+   ! one NHx field and one NOy field.
+   !-------------------------------------------------------------------
+
+   use ncdio_pio     , only : ncd_pio_openfile, ncd_inqvid, ncd_getatt, &
+                              ncd_pio_closefile, ncd_nowrite
    use ncdio_pio     , only : file_desc_t, var_desc_t
    use shr_kind_mod  , only : CS => shr_kind_cs
    use shr_log_mod   , only : errMsg => shr_log_errMsg
    use shr_string_mod, only : shr_string_listGetName
+
    implicit none
 
-   !-----------------------------------------------------------------------
-   !
    ! Arguments
-   character(len=*), intent(IN)  :: stream_fldFileName_ndep  ! ndep filename
-   character(len=*), intent(IN)  :: ndep_varList             ! ndep variable list to examine
-   !
+   character(len=*), intent(in) :: stream_fldFileName_ndep
+   character(len=*), intent(in) :: ndep_varList
+
    ! Local variables
-   type(file_desc_t) :: ncid     ! NetCDF filehandle for ndep file
-   type(var_desc_t)  :: vardesc  ! variable descriptor
-   integer           :: varid    ! variable index
-   logical           :: readvar  ! If variable was read
-   character(len=CS) :: ndepunits! ndep units
-   character(len=CS) :: fname    ! ndep field name
-   !-----------------------------------------------------------------------
+   type(file_desc_t) :: ncid
+   type(var_desc_t)  :: vardesc
+   integer           :: varid
+   logical           :: readvar
+   !character(len=CS) :: ndepunits1
+   !character(len=CS) :: ndepunits2
+   !character(len=CS) :: fname1
+   !character(len=CS) :: fname2
+   character(len=CS) :: ndepunits1, ndepunits2
+   character(len=CS) :: fname1, fname2
+   call shr_string_listGetName( ndep_varList, 1, fname1 )
+   call shr_string_listGetName( ndep_varList, 2, fname2 )
+
+   divide_by_secs_per_yr = .false.
+
    call ncd_pio_openfile( ncid, trim(stream_fldFileName_ndep), ncd_nowrite )
-   call shr_string_listGetName( ndep_varList, 1, fname )
-   call ncd_inqvid(       ncid, fname, varid, vardesc, readvar=readvar )
+
+   ! Adeola modification: first split field
+   !call shr_string_listGetName( ndep_varList, 1, fname1 )
+   call ncd_inqvid( ncid, trim(fname1), varid, vardesc, readvar=readvar )
    if ( readvar ) then
-      call ncd_getatt(    ncid, varid, "units", ndepunits )
+      call ncd_getatt( ncid, varid, 'units', ndepunits1 )
    else
-      call endrun(msg=' ERROR finding variable: '//trim(fname)//" in file: "// &
+      call endrun(msg=' ERROR finding variable: '//trim(fname1)//' in file: '// &
                       trim(stream_fldFileName_ndep)//errMsg(sourcefile, __LINE__))
    end if
+
+   ! Adeola modification: second split field
+   !call shr_string_listGetName( ndep_varList, 2, fname2 )
+   call ncd_inqvid( ncid, trim(fname2), varid, vardesc, readvar=readvar )
+   if ( readvar ) then
+      call ncd_getatt( ncid, varid, 'units', ndepunits2 )
+   else
+      call endrun(msg=' ERROR finding variable: '//trim(fname2)//' in file: '// &
+                      trim(stream_fldFileName_ndep)//errMsg(sourcefile, __LINE__))
+   end if
+
    call ncd_pio_closefile( ncid )
 
-   ! Now check to make sure they are correct
-   if (      trim(ndepunits) == "g(N)/m2/s"  )then
-      divide_by_secs_per_yr = .false.
-   else if ( trim(ndepunits) == "g(N)/m2/yr" )then
-      divide_by_secs_per_yr = .true.
-   else
-      call endrun(msg=' ERROR in units for nitrogen deposition equal to: '//trim(ndepunits)//" not units expected"// &
+   if ( trim(ndepunits1) /= trim(ndepunits2) ) then
+      call endrun(msg=' ERROR: NHx and NOy deposition fields have different units: '// &
+                      trim(ndepunits1)//' versus '//trim(ndepunits2)// &
                       errMsg(sourcefile, __LINE__))
    end if
 
- end subroutine check_units
+   if ( trim(ndepunits1) == 'g(N)/m2/s' ) then
+      divide_by_secs_per_yr = .false.
+   else if ( trim(ndepunits1) == 'g(N)/m2/yr' ) then
+      divide_by_secs_per_yr = .true.
+   else
+      call endrun(msg=' ERROR in units for nitrogen deposition equal to: '// &
+                      trim(ndepunits1)//' not units expected'// &
+                      errMsg(sourcefile, __LINE__))
+   end if
+
+   ! Adeola temporary debug print
+   !write(iulog,*) 'NDEPDBG_META', 'fname1=', trim(fname1), 'units1=', trim(ndepunits1), &
+   !           'fname2=', trim(fname2), 'units2=', trim(ndepunits2), &
+   !           'file=', trim(stream_fldFileName_ndep)
+
+end subroutine check_units
 
  !================================================================
  subroutine ndep_interp(bounds, atm2lnd_inst)
@@ -245,21 +286,104 @@ contains
    mcdate = year*10000 + mon*100 + day
 
    call shr_strdata_advance(sdat, mcdate, sec, mpicom, 'ndepdyn')
+! write(iulog,*) 'Adeola debug: size(sdat%avs)=', size(sdat%avs)
+! write(iulog,*) 'Adeola debug: size(sdat%avs(1)%rAttr,1)=', size(sdat%avs(1)%rAttr,1), &
+!               ' size(sdat%avs(1)%rAttr,2)=', size(sdat%avs(1)%rAttr,2)
+! Adeol Added to debug reading of deposition file: begin
+   ! if (mcdate == 20090101 .and. sec == 0) then
+   ! write(iulog,*) 'Adeola debug: size(sdat%avs)=', size(sdat%avs)
 
-   if ( divide_by_secs_per_yr )then
-      ig = 0
-      dayspyr = get_days_per_year( )
-      do g = bounds%begg,bounds%endg
-         ig = ig+1
-         atm2lnd_inst%forc_ndep_grc(g) = sdat%avs(1)%rAttr(1,ig) / (secspday * dayspyr)
-      end do
-   else
-      ig = 0
-      do g = bounds%begg,bounds%endg
-         ig = ig+1
-         atm2lnd_inst%forc_ndep_grc(g) = sdat%avs(1)%rAttr(1,ig)
-      end do
-   end if
+   ! write(iulog,*) 'Adeola debug: avs(1) shape =', &
+                  ! size(sdat%avs(1)%rAttr,1), size(sdat%avs(1)%rAttr,2)
+   ! if (size(sdat%avs(1)%rAttr,1) >= 2 .and. size(sdat%avs(1)%rAttr,2) >= 1) then
+      ! write(iulog,*) 'Adeola debug: avs(1) first rows =', &
+                     ! sdat%avs(1)%rAttr(1,1), sdat%avs(1)%rAttr(2,1)
+   ! end if
+
+   ! if (size(sdat%avs) >= 2) then
+      ! write(iulog,*) 'Adeola debug: avs(2) shape =', &
+                     ! size(sdat%avs(2)%rAttr,1), size(sdat%avs(2)%rAttr,2)
+      ! if (size(sdat%avs(2)%rAttr,1) >= 1 .and. size(sdat%avs(2)%rAttr,2) >= 1) then
+         ! write(iulog,*) 'Adeola debug: avs(2) first value =', &
+                        ! sdat%avs(2)%rAttr(1,1)
+      ! end if
+   ! end if
+
+   ! if (size(sdat%avs) >= 3) then
+      ! write(iulog,*) 'Adeola debug: avs(3) shape =', &
+                     ! size(sdat%avs(3)%rAttr,1), size(sdat%avs(3)%rAttr,2)
+      ! if (size(sdat%avs(3)%rAttr,1) >= 1 .and. size(sdat%avs(3)%rAttr,2) >= 1) then
+         ! write(iulog,*) 'Adeola debug: avs(3) first value =', &
+                        ! sdat%avs(3)%rAttr(1,1)
+      ! end if
+   ! end if
+!end if
+
+! Adeol Added to debug reading of depoasition file: end
+
+! Adeola replacement:begin
+
+if ( divide_by_secs_per_yr ) then
+   ig = 0
+   dayspyr = get_days_per_year()
+   do g = bounds%begg,bounds%endg
+      ig = ig + 1
+
+      !atm2lnd_inst%forc_nhxdep_grc(g) = sdat%avs(1)%rAttr(1,ig) / (secspday * dayspyr)
+      !atm2lnd_inst%forc_noydep_grc(g) = sdat%avs(2)%rAttr(1,ig) / (secspday * dayspyr)
+      atm2lnd_inst%forc_nhxdep_grc(g) = sdat%avs(1)%rAttr(1,ig) / (secspday * dayspyr)
+      atm2lnd_inst%forc_noydep_grc(g) = sdat%avs(1)%rAttr(2,ig) / (secspday * dayspyr)
+      atm2lnd_inst%forc_ndep_grc(g)   = atm2lnd_inst%forc_nhxdep_grc(g) + &
+                                        atm2lnd_inst%forc_noydep_grc(g)
+
+      ! if (g == bounds%begg) then
+         ! write(iulog,*) 'NDEPDBG_STREAM', 'mcdate=', mcdate, 'sec=', sec, &
+                    ! 'g=', g, 'ig=', ig, 'branch=annual_to_flux', &
+                    ! 'raw_nhx=', sdat%avs(1)%rAttr(1,ig), &
+		    ! 'raw_noy=', sdat%avs(1)%rAttr(2,ig), &
+                    ! 'forc_nhx=', atm2lnd_inst%forc_nhxdep_grc(g), &
+                    ! 'forc_noy=', atm2lnd_inst%forc_noydep_grc(g), &
+                    ! 'forc_ndep=', atm2lnd_inst%forc_ndep_grc(g)
+      ! end if
+   end do
+else
+   ig = 0
+   do g = bounds%begg,bounds%endg
+      ig = ig + 1
+
+      !atm2lnd_inst%forc_nhxdep_grc(g) = sdat%avs(1)%rAttr(1,ig)
+      !atm2lnd_inst%forc_noydep_grc(g) = sdat%avs(2)%rAttr(1,ig)
+      atm2lnd_inst%forc_nhxdep_grc(g) = sdat%avs(1)%rAttr(1,ig)
+      atm2lnd_inst%forc_noydep_grc(g) = sdat%avs(1)%rAttr(2,ig)
+      atm2lnd_inst%forc_ndep_grc(g)   = atm2lnd_inst%forc_nhxdep_grc(g) + &
+                                        atm2lnd_inst%forc_noydep_grc(g)
+
+      ! if (g == bounds%begg) then
+         ! write(iulog,*) 'NDEPDBG_STREAM', 'mcdate=', mcdate, 'sec=', sec, &
+                    ! 'g=', g, 'ig=', ig, 'branch=flux', &
+                    ! 'raw_nhx=', sdat%avs(1)%rAttr(1,ig), &
+		    ! 'raw_noy=', sdat%avs(1)%rAttr(2,ig), &
+                    ! 'forc_nhx=', atm2lnd_inst%forc_nhxdep_grc(g), &
+                    ! 'forc_noy=', atm2lnd_inst%forc_noydep_grc(g), &
+                    ! 'forc_ndep=', atm2lnd_inst%forc_ndep_grc(g)
+      ! end if
+   end do
+end if
+!Adeola replacement:end
+   !if ( divide_by_secs_per_yr )then
+    !  ig = 0
+     ! dayspyr = get_days_per_year( )
+      !do g = bounds%begg,bounds%endg
+       !  ig = ig+1
+        ! atm2lnd_inst%forc_ndep_grc(g) = sdat%avs(1)%rAttr(1,ig) / (secspday * dayspyr)
+      !end do
+   !else
+    !  ig = 0
+    !  do g = bounds%begg,bounds%endg
+     !    ig = ig+1
+     !    atm2lnd_inst%forc_ndep_grc(g) = sdat%avs(1)%rAttr(1,ig)
+     ! end do
+   !end if
    
  end subroutine ndep_interp
 

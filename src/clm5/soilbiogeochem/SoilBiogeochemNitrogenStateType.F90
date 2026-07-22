@@ -56,6 +56,11 @@ module SoilBiogeochemNitrogenStateType
      real(r8), pointer :: dyn_nh4bal_adjustments_col (:) ! (gN/m2) NH4 adjustments to each column made in this timestep via dynamic column adjustments (only makes sense at the column-level: meaningless if averaged to the gridcell-level)
      real(r8)          :: totvegcthresh                  ! threshold for total vegetation carbon to zero out decomposition pools
 
+
+! rain pulse for soil NOx (mvm)
+     real(r8), pointer :: ldry_vr_col                              (:,:)   ! dry period for rain pulses for NOx from nitrification [hours]
+     real(r8), pointer :: pfactor_vr_col                              (:,:)   ! pulsing factor [unitless]
+
    contains
 
      procedure , public  :: Init   
@@ -132,6 +137,10 @@ contains
     this%decomp_npools_vr_col(:,:,:)= nan
     allocate(this%decomp_soiln_vr_col(begc:endc,1:nlevdecomp_full))
     this%decomp_soiln_vr_col(:,:)= nan
+
+! Rain Pulse for NOx: dry period and pulse factor
+    allocate(this%ldry_vr_col      (begc:endc,1:nlevdecomp_full)) ; this%ldry_vr_col      (:,:) = nan
+    allocate(this%pfactor_vr_col      (begc:endc,1:nlevdecomp_full)) ; this%pfactor_vr_col      (:,:) = nan
 
   end subroutine InitAllocate
 
@@ -362,6 +371,8 @@ contains
              do j = 1, nlevdecomp_full
                 this%smin_nh4_vr_col(c,j) = 0._r8
                 this%smin_no3_vr_col(c,j) = 0._r8
+                this%ldry_vr_col(c,j) = 0._r8 !mvm, rain pulse
+                this%pfactor_vr_col(c,j) = 0._r8
              end do
              this%smin_nh4_col(c) = 0._r8
              this%smin_no3_col(c) = 0._r8
@@ -688,7 +699,7 @@ contains
        if (use_nitrif_denitrif) then
           this%smin_no3_col(i) = value_column
           this%smin_nh4_col(i) = value_column
-       end if
+        end if
        this%totlitn_col(i)     = value_column
        this%totsomn_col(i)     = value_column
        this%totsomn_1m_col(i)  = value_column
@@ -703,6 +714,8 @@ contains
           if (use_nitrif_denitrif) then
              this%smin_no3_vr_col(i,j) = value_column
              this%smin_nh4_vr_col(i,j) = value_column
+             this%ldry_vr_col(i,j)     = value_column !mvm rain pulse
+             this%pfactor_vr_col(i,j)  = value_column
           end if
        end do
     end do

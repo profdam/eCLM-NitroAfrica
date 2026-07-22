@@ -51,6 +51,8 @@ module atm2lndType
      ! (all_snow_t is in K)
      real(r8) :: precip_repartition_nonglc_all_snow_t
      real(r8) :: precip_repartition_nonglc_frac_rain_slope
+
+
   end type atm2lnd_params_type
 
   !----------------------------------------------------
@@ -86,6 +88,10 @@ module atm2lndType
      real(r8), pointer :: forc_solai_grc                (:,:) => null() ! diffuse radiation (numrad) (vis=forc_solsd, nir=forc_solld)
      real(r8), pointer :: forc_solar_grc                (:)   => null() ! incident solar radiation
      real(r8), pointer :: forc_ndep_grc                 (:)   => null() ! nitrogen deposition rate (gN/m2/s)
+     !Added by Adeola: Begin
+real(r8), pointer :: forc_nhxdep_grc(:) => null() ! NHx deposition rate (gN/m2/s)
+real(r8), pointer :: forc_noydep_grc(:) => null() ! NOy deposition rate (gN/m2/s)
+!Added by Adeola: end
      real(r8), pointer :: forc_pc13o2_grc               (:)   => null() ! C13O2 partial pressure (Pa)
      real(r8), pointer :: forc_po2_grc                  (:)   => null() ! O2 partial pressure (Pa)
      real(r8), pointer :: forc_po2_240_patch            (:)   => null() ! 10-day mean O2 partial pressure (Pa)
@@ -513,6 +519,11 @@ contains
     allocate(this%forc_solai_grc                (begg:endg,numrad)) ; this%forc_solai_grc                (:,:) = ival
     allocate(this%forc_solar_grc                (begg:endg))        ; this%forc_solar_grc                (:)   = ival
     allocate(this%forc_ndep_grc                 (begg:endg))        ; this%forc_ndep_grc                 (:)   = ival
+!Added by Adeola:begin
+   allocate(this%forc_nhxdep_grc                 (begg:endg))        ; this%forc_nhxdep_grc                 (:)   = ival
+   allocate(this%forc_noydep_grc                 (begg:endg))        ; this%forc_noydep_grc                 (:)   = ival
+!Added by Adeola
+
     allocate(this%forc_pc13o2_grc               (begg:endg))        ; this%forc_pc13o2_grc               (:)   = ival
     allocate(this%forc_po2_grc                  (begg:endg))        ; this%forc_po2_grc                  (:)   = ival
     allocate(this%forc_aer_grc                  (begg:endg,14))     ; this%forc_aer_grc                  (:,:) = ival
@@ -1260,6 +1271,10 @@ contains
     deallocate(this%forc_solai_grc)
     deallocate(this%forc_solar_grc)
     deallocate(this%forc_ndep_grc)
+	!Added by Adeola: Begin
+	deallocate(this%forc_nhxdep_grc)
+	deallocate(this%forc_noydep_grc)
+	!Added by Adeola: End
     deallocate(this%forc_pc13o2_grc)
     deallocate(this%forc_po2_grc)
     deallocate(this%forc_aer_grc)

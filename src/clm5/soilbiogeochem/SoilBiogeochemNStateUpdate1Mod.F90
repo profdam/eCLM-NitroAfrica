@@ -52,7 +52,10 @@ contains
     associate(                                                                   & 
          cascade_donor_pool    => decomp_cascade_con%cascade_donor_pool        , & ! Input:  [integer  (:)     ]  which pool is C taken from for a given decomposition step
          cascade_receiver_pool => decomp_cascade_con%cascade_receiver_pool     , & ! Input:  [integer  (:)     ]  which pool is C added to for a given decomposition step
-
+!Adeola added:begin
+nhxdep_to_sminnh4 => soilbiogeochem_nitrogenflux_inst%nhxdep_to_sminnh4_col   , &
+noydep_to_sminno3 => soilbiogeochem_nitrogenflux_inst%noydep_to_sminno3_col   , &
+!Adeola Added: end
          ndep_prof             => soilbiogeochem_state_inst%ndep_prof_col      , & ! Input:  [real(r8) (:,:)   ]  profile over which N deposition is distributed through column (1/m)
          nfixation_prof        => soilbiogeochem_state_inst%nfixation_prof_col , & ! Input:  [real(r8) (:,:)   ]  profile over which N fixation is distributed through column (1/m)
 
@@ -68,20 +71,24 @@ contains
             c = filter_soilc(fc)
             if(use_fun)then !RF in FUN logic, the fixed N goes straight into the plant, and not into the SMINN pool. 
  	               ! N deposition and fixation (put all into NH4 pool)
-	               ns%smin_nh4_vr_col(c,j) = ns%smin_nh4_vr_col(c,j) + nf%ndep_to_sminn_col(c)*dt * ndep_prof(c,j)
-	               ns%smin_nh4_vr_col(c,j) = ns%smin_nh4_vr_col(c,j) + nf%ffix_to_sminn_col(c)*dt * nfixation_prof(c,j)
+	               !ns%smin_nh4_vr_col(c,j) = ns%smin_nh4_vr_col(c,j) + nf%ndep_to_sminn_col(c)*dt * ndep_prof(c,j) !commented by Adeola
+			ns%smin_nh4_vr_col(c,j) = ns%smin_nh4_vr_col(c,j) + nhxdep_to_sminnh4(c)*dt * ndep_prof(c,j) !Added by Adeola
+			ns%smin_no3_vr_col(c,j) = ns%smin_no3_vr_col(c,j) + noydep_to_sminno3(c)*dt * ndep_prof(c,j)  !Added by Adeola
+			ns%smin_nh4_vr_col(c,j) = ns%smin_nh4_vr_col(c,j) + nf%ffix_to_sminn_col(c)*dt * nfixation_prof(c,j)
 	          else
 	            if (.not. use_nitrif_denitrif) then
 
 	               ! N deposition and fixation
-	               ns%sminn_vr_col(c,j) = ns%sminn_vr_col(c,j) + nf%ndep_to_sminn_col(c)*dt * ndep_prof(c,j)
+	               !ns%sminn_vr_col(c,j) = ns%sminn_vr_col(c,j) + nf%ndep_to_sminn_col(c)*dt * ndep_prof(c,j) !Commented by Adeola
+		       ns%sminn_vr_col(c,j) = ns%sminn_vr_col(c,j) + (nhxdep_to_sminnh4(c) + noydep_to_sminno3(c))*dt * ndep_prof(c,j) !Added by Adeol
 	               ns%sminn_vr_col(c,j) = ns%sminn_vr_col(c,j) + nf%nfix_to_sminn_col(c)*dt * nfixation_prof(c,j)
-
 	            else
 
 	               ! N deposition and fixation (put all into NH4 pool)
-	               ns%smin_nh4_vr_col(c,j) = ns%smin_nh4_vr_col(c,j) + nf%ndep_to_sminn_col(c)*dt * ndep_prof(c,j)
-	               ns%smin_nh4_vr_col(c,j) = ns%smin_nh4_vr_col(c,j) + nf%nfix_to_sminn_col(c)*dt * nfixation_prof(c,j)
+	               !ns%smin_nh4_vr_col(c,j) = ns%smin_nh4_vr_col(c,j) + nf%ndep_to_sminn_col(c)*dt * ndep_prof(c,j) !commented by Adeola
+			ns%smin_nh4_vr_col(c,j) = ns%smin_nh4_vr_col(c,j) + nhxdep_to_sminnh4(c)*dt * ndep_prof(c,j) !Added by Adeola
+			ns%smin_no3_vr_col(c,j) = ns%smin_no3_vr_col(c,j) + noydep_to_sminno3(c)*dt * ndep_prof(c,j)  !Added by Adeola
+			ns%smin_nh4_vr_col(c,j) = ns%smin_nh4_vr_col(c,j) + nf%nfix_to_sminn_col(c)*dt * nfixation_prof(c,j)
                        
                 end if
            end if

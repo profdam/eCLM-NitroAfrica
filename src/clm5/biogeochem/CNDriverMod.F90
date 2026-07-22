@@ -1,4 +1,5 @@
 module CNDriverMod
+  use FrictionVelocityMod             , only : frictionvel_type
 
   !-----------------------------------------------------------------------
   ! !DESCRIPTION:
@@ -26,6 +27,7 @@ module CNDriverMod
   use SoilBiogeochemNitrogenFluxType  , only : soilbiogeochem_nitrogenflux_type
   use CNDVType                        , only : dgvs_type
   use CanopyStateType                 , only : canopystate_type
+  use DryDepVelocity                  , only : drydepvel_type
   use SoilStateType                   , only : soilstate_type
   use TemperatureType                 , only : temperature_type
   use WaterstateType                  , only : waterstate_type
@@ -92,7 +94,9 @@ contains
        atm2lnd_inst, waterstate_inst, waterflux_inst,                                      &
        canopystate_inst, soilstate_inst, temperature_inst, crop_inst, ch4_inst,            &
        dgvs_inst, photosyns_inst, soilhydrology_inst, energyflux_inst,                     &
-       nutrient_competition_method, cnfire_method, dribble_crophrv_xsmrpool_2atm)
+       nutrient_competition_method, cnfire_method, dribble_crophrv_xsmrpool_2atm,          &
+       drydepvel_inst, & !added mvm for NO canopy reduction
+       frictionvel_inst)  !mvm added by fkm for NH3 canopy reduction
     !
     ! !DESCRIPTION:
     ! The core CN code is executed here. Calculates fluxes for maintenance
@@ -173,6 +177,8 @@ contains
     type(temperature_type)                  , intent(inout) :: temperature_inst
     type(crop_type)                         , intent(inout) :: crop_inst
     type(ch4_type)                          , intent(in)    :: ch4_inst
+    type(drydepvel_type)                   , intent(in)    :: drydepvel_inst
+    type(frictionvel_type)                 , intent(in)    :: frictionvel_inst
     type(dgvs_type)                         , intent(inout) :: dgvs_inst
     type(photosyns_type)                    , intent(in)    :: photosyns_inst
     type(soilhydrology_type)                , intent(in)    :: soilhydrology_inst
@@ -190,7 +196,18 @@ contains
     integer :: begp,endp
     integer :: begc,endc
 
+	    ! NitroAfrica: canopy reduction factor (LAI/SAI) for NOx
+    real(r8) :: canopy_red_fac_patch(bounds%begp:bounds%endp)
+    real(r8) :: canopy_red_fac_col  (bounds%begc:bounds%endc)
+
+    real(r8) :: lai_loc, sai_loc, f_lai, f_sai
+    real(r8) :: kc_lai, ks_sai
+
+
+    integer :: fp, p, ip, icol, c
     integer :: dummy_to_make_pgi_happy
+
+
     !-----------------------------------------------------------------------
 
     begp = bounds%begp; endp = bounds%endp
@@ -213,6 +230,14 @@ contains
          htop                      => canopystate_inst%htop_patch               , & ! Output: [real(r8) (:) ] canopy top (m)                                     
          hbot                      => canopystate_inst%hbot_patch                 & ! Output: [real(r8) (:) ] canopy bottom (m)                                  
       )
+
+    ! NitroAfrica: parameters for canopy reduction factor (Yan et al. 2005 / Val-Martín et al. 2023)
+    kc_lai = 0.32_r8      ! leaf area coefficient
+    ks_sai = 11.6_r8      ! stem area coefficient
+
+    ! Default: no canopy shielding
+    canopy_red_fac_patch(:) = 1._r8
+    canopy_red_fac_col(:)   = 1._r8
 
     ! --------------------------------------------------
     ! zero the column-level C and N fluxes
@@ -296,6 +321,43 @@ contains
          cnveg_carbonflux_inst, cnveg_nitrogenstate_inst)
     call t_stopf('CNMResp')
 
+
+      !-----------------------------------------------------------------
+      ! NitroAfrica: Canopy reduction factor for soil NOx
+      ! Based on Val-Martín et al. LAI/SAI exponential screening
+      !
+      ! CRF ≈ 0.5 * [exp(-ks * SAI) + exp(-kc * LAI)]
+      ! where ks_sai and kc_lai are parameters defined above.
+      !-----------------------------------------------------------------
+
+      ! 1) Initialise to 1 (no reduction) everywhere
+      canopy_red_fac_patch(:) = 1._r8
+
+      do fp = 1, num_soilp
+         p = filter_soilp(fp)
+
+         ! Use exposed LAI/SAI on the patch
+         ! (You can switch to tlai if you prefer total LAI)
+         ! Guard against negative values.
+        ! real(r8) :: lai_loc, sai_loc, f_lai, f_sai
+
+         lai_loc = max(elai(p), 0._r8)
+         sai_loc = max(esai(p), 0._r8)
+
+         ! Exponential attenuation following Val-Martín-style form
+         f_sai = exp(-ks_sai * sai_loc)
+         f_lai = exp(-kc_lai * lai_loc)
+
+         canopy_red_fac_patch(p) = 0.5_r8 * (f_sai + f_lai)
+
+         ! Safety: no enhancement
+         canopy_red_fac_patch(p) = min(1._r8, max(0._r8, canopy_red_fac_patch(p)))
+      end do
+
+      ! 2) Map patch values to columns using existing p2c
+      call p2c(bounds, num_soilc, filter_soilc, &
+               canopy_red_fac_patch(begp:endp), canopy_red_fac_col(begc:endc))
+
     !--------------------------------------------
     ! Soil Biogeochemistry
     !--------------------------------------------
@@ -322,11 +384,13 @@ contains
          canopystate_inst, soilstate_inst,soilbiogeochem_state_inst)
 
     ! calculate nitrification and denitrification rates (previously subroutine nitrif_denitrif called from CNDecompAlloc)
-    if (use_nitrif_denitrif) then 
-       call SoilBiogeochemNitrifDenitrif(bounds, num_soilc, filter_soilc, &
-            soilstate_inst, waterstate_inst, temperature_inst, ch4_inst, &
-            soilbiogeochem_carbonflux_inst, soilbiogeochem_nitrogenstate_inst, soilbiogeochem_nitrogenflux_inst)
-    end if
+          if (use_nitrif_denitrif) then
+         call SoilBiogeochemNitrifDenitrif(bounds, num_soilc, filter_soilc, &
+              soilstate_inst, waterstate_inst, temperature_inst, ch4_inst, &
+              soilbiogeochem_carbonflux_inst, soilbiogeochem_nitrogenstate_inst, &
+              soilbiogeochem_nitrogenflux_inst, canopy_red_fac_col)
+      end if
+
     call t_stopf('SoilBiogeochem')
 
     !--------------------------------------------
@@ -394,7 +458,10 @@ contains
                                      cnveg_carbonflux_inst,cnveg_nitrogenstate_inst,cnveg_nitrogenflux_inst,   &
                                      soilbiogeochem_carbonflux_inst,&
                                      soilbiogeochem_state_inst,soilbiogeochem_nitrogenstate_inst,              &
-                                     soilbiogeochem_nitrogenflux_inst,canopystate_inst)
+                                     soilbiogeochem_nitrogenflux_inst,canopystate_inst,                        &
+                                     atm2lnd_inst,           & !mvm
+                                     drydepvel_inst,crop_inst ,& ! added by mvm for NO canopy reduction and NH3 crops
+                                     frictionvel_inst)  ! added by fkm for NH3  canopy reduction)
      call t_stopf('soilbiogeochemcompetition')
 
     ! distribute the available N between the competing patches  on the basis of 
