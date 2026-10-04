@@ -287,7 +287,7 @@ The modified model was developed for simulations at the following African savann
 
 The model is also being used in the development of a regional West African configuration.
 
-The source-code repository does not automatically contain all namelists, forcing files, surface datasets, domain files or deposition datasets required to reproduce every experiment. These materials should be provided separately where redistribution is permitted.
+The source-code repository does not automatically contain all namelists, forcing files, surface datasets, domain files or deposition datasets required to reproduce every experiment.
 
 ## Input data
 
