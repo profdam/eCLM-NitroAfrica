@@ -384,22 +384,27 @@ Users of this modified version should cite:
 1. the relevant CLM5 model description;
 2. the original eCLM model and repository;
 3. the NitroAfrica manuscript describing these modifications;
-4. the archived software release and DOI, once available;
+4. the version-specific NitroAfrica software release corresponding to the
+   GitHub tag used in the analysis;
 5. the scientific publications underlying the implemented NO, N2O, NH3, rainfall-pulse and canopy-reduction formulations.
 
 ## Software archive
 
-The peer-review version of the modified source code is permanently archived
-on Zenodo:
+The source-code version archived for peer review is:
 
-Dahunsi et. al. (2026b).
-*NitroAfrica modifications to eCLM*.
-Zenodo. https://doi.org/10.5281/zenodo.21490378
+> Dahunsi, A. M., Delon, C., and Solmon, F. (2026). *NitroAfrica
+> modifications to eCLM* (Version v0.1.3-peer-review) [Computer software].
+> Zenodo. https://doi.org/10.5281/zenodo.21490379
 
-DOI: `10.5281/zenodo.21490378`
+The archived version corresponds to GitHub tag
+[`v0.1.3-peer-review`](https://github.com/profdam/eCLM-NitroAfrica/tree/v0.1.3-peer-review)
+at commit `61e32b171305694767737a5a84696f335c38cf01`.
 
-GitHub repository:
-`https://github.com/profdam/eCLM-NitroAfrica`
+DOI `10.5281/zenodo.21490379` identifies this exact version. The concept DOI
+`10.5281/zenodo.21490378` represents all versions and resolves to the latest
+Zenodo record. Reproducibility citations should use the version-specific DOI.
+
+GitHub repository: https://github.com/profdam/eCLM-NitroAfrica
 
 ## Licence
 

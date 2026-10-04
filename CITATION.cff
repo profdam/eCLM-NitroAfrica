@@ -1,9 +1,11 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite the archived release."
+message: "If you use this software, please cite the versioned Zenodo record corresponding to GitHub tag v0.1.3-peer-review."
 title: "NitroAfrica modifications to eCLM"
-version: "0.1.3-peer-review"
-doi: "10.5281/zenodo.21490378"
+version: "v0.1.3-peer-review"
+doi: "10.5281/zenodo.21490379"
+date-released: 2026-07-22
 repository-code: "https://github.com/profdam/eCLM-NitroAfrica"
+repository-artifact: "https://github.com/profdam/eCLM-NitroAfrica/tree/v0.1.3-peer-review"
 license: "BSD-3-Clause"
 type: software
 abstract: >-
